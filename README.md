@@ -1,5 +1,9 @@
 # BGPView CLI
 
+**Working in progress**, only `ip` sub command usable for now, and it only prints ASNs info.
+
+Other sub commands can be added easily, but I do not use them very often, so they may not be added forever if no one asks.
+
 ## Install
 
 ```bash
