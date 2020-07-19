@@ -4,7 +4,7 @@ use {
 };
 
 #[derive(StructOpt)]
-#[structopt(author, about = "CLI tools for bgpview.io", setting = clap::AppSettings::ArgRequiredElseHelp)]
+#[structopt(author, about, setting = clap::AppSettings::ArgRequiredElseHelp)]
 #[structopt(rename_all = "kebab-case")]
 pub enum Args {
     /// Show information of given ip address, like ASNs, RIR, IANA, etc

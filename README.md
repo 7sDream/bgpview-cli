@@ -4,6 +4,8 @@
 
 Other sub commands can be added easily, but I do not use them very often, so they may not be added forever if no one asks.
 
+You can visit https://bgpview.docs.apiary.io/ for the doc of bgpview.io API.
+
 ## Install
 
 ```bash
