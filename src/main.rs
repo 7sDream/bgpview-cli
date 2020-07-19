@@ -4,42 +4,46 @@
 #![allow(dead_code)]
 #![allow(clippy::module_name_repetitions)]
 
+mod args;
 mod chunks;
+mod client;
 mod http;
 mod model;
 mod setting;
 mod template;
 
-use std::{io, time::Duration};
+use args::Args;
 
-fn main() -> io::Result<()> {
-    let client = http::Client::new(
-        setting::api::SCHEMA,
-        setting::api::DOMAIN,
-        setting::api::PORT,
-    )?;
+pub use anyhow::Result;
 
-    let path = template::fill(
-        setting::api::ip::TEMPLATE,
-        &maplit::hashmap! {
-            "ip" => "1.1.1.1",
-        },
-    );
+fn main() -> Result<()> {
+    let argument = args::get();
+    let client = client::Client::new()?;
 
-    let mut response = Vec::new();
-    let body = client.request(
-        setting::api::ip::METHOD,
-        path,
-        http::NONE,
-        http::NONE,
-        None,
-        &mut response,
-        Duration::from_millis(2000),
-    )?;
+    match argument {
+        Args::Ip { ip } => {
+            let data = client.ip(&ip)?;
+            let prefixes = &data.prefixes;
 
-    let ip_resp = serde_json::from_reader::<_, model::IpResponse>(body).unwrap();
-
-    println!("Ip: {}", ip_resp.data.ip);
+            if prefixes.is_empty() {
+                println!("No ASN owns {}", ip);
+            } else {
+                println!("{}", ip);
+                for prefix in prefixes {
+                    let asn = &prefix.asn;
+                    println!();
+                    println!(
+                        "ASN{}: {} - {} - {}",
+                        asn.asn, asn.name, asn.description, asn.country_code,
+                    );
+                    println!(" Prefix: {}", prefix.prefix);
+                    println!("   Name: {}", prefix.name);
+                    println!("   Desc: {}", prefix.description);
+                    println!("Country: {}", prefix.country_code);
+                }
+            }
+        }
+    }
 
     Ok(())
 }

@@ -1,15 +1,34 @@
 use {
-    crate::{chunks::BodyChunks, setting},
+    crate::{chunks::BodyChunks, setting, Result},
+    httparse::Header,
     percent_encoding::utf8_percent_encode as urlencode,
     rustls::{ClientConfig, ClientSession},
     std::{
         collections::HashMap,
+        fmt::{self, Formatter},
         io::{self, Read, Write},
         net::{SocketAddr, TcpStream, ToSocketAddrs},
         sync::Arc,
         time::Duration,
     },
 };
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum HttpClientError {
+    DNSLookupFailed,
+    InvalidResponse,
+    InvalidBody,
+    UnsupportedTransferEncoding,
+    StatusCodeNotOk,
+}
+
+impl fmt::Display for HttpClientError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        <Self as fmt::Debug>::fmt(self, f)
+    }
+}
+
+impl std::error::Error for HttpClientError {}
 
 pub static NONE: &Option<HashMap<&'static str, &'static str>> = &None;
 
@@ -38,7 +57,7 @@ pub struct Client<'s> {
 }
 
 impl<'s> Client<'s> {
-    pub fn new(schema: &'s str, domain: &'s str, port: u16) -> io::Result<Self> {
+    pub fn new(schema: &'s str, domain: &'s str, port: u16) -> Result<Self> {
         let mut config = rustls::ClientConfig::new();
         config
             .root_store
@@ -48,10 +67,7 @@ impl<'s> Client<'s> {
         let addr = format!("{}:{}", domain, port)
             .to_socket_addrs()?
             .next()
-            .ok_or(io::Error::new(
-                io::ErrorKind::Other,
-                "Send request failed: can't get host ip",
-            ))?;
+            .ok_or(HttpClientError::DNSLookupFailed)?;
 
         Ok(Self {
             config,
@@ -65,38 +81,30 @@ impl<'s> Client<'s> {
     fn parse_response<'buf, R: Read>(
         tls: &mut R,
         buffer: &'buf mut Vec<u8>,
-    ) -> std::io::Result<BodyChunks<'buf>> {
+    ) -> Result<Response<'buf>> {
         tls.read_to_end(buffer)?;
 
-        let mut response_headers = [httparse::Header {
-            name: "",
-            value: &buffer,
-        }; 32];
+        let mut headers = vec![
+            httparse::Header::<'buf> {
+                name: "",
+                value: buffer,
+            };
+            32
+        ];
 
-        let mut response = httparse::Response::new(&mut response_headers);
+        let mut response = httparse::Response::new(&mut headers);
 
-        let body = match response.parse(&buffer) {
+        let body = match response.parse(buffer) {
             Ok(status) if status.is_complete() => {
                 let size = status.unwrap();
                 &buffer[size..]
             }
-            _ => {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    "Received bytes is not valid HTTP response",
-                ))
-            }
+            _ => Err(HttpClientError::InvalidResponse)?,
         };
 
         let code = response.code.unwrap();
-        if code != 200 {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("Received  HTTP response code: {}", code),
-            ));
-        }
 
-        let content_length = response_headers
+        let content_length = headers
             .iter()
             .find(|h| h.name.to_ascii_lowercase() == "content-length")
             .iter()
@@ -111,7 +119,7 @@ impl<'s> Client<'s> {
         if let Some(content_length) = content_length {
             body_chunks.push(&body[..content_length]);
         } else {
-            let transfer_encoding = response_headers
+            let transfer_encoding = headers
                 .iter()
                 .find(|h| h.name.to_ascii_lowercase() == "transfer-encoding")
                 .iter()
@@ -132,24 +140,20 @@ impl<'s> Client<'s> {
                             start = pos + size as usize + 2;
                         }
                         // other condition is error
-                        _ => {
-                            return Err(io::Error::new(
-                                io::ErrorKind::Other,
-                                "HTTP response body invalid",
-                            ));
-                        }
+                        _ => Err(HttpClientError::InvalidBody)?,
                     }
                 },
-                _ => {
-                    return Err(io::Error::new(
-                        io::ErrorKind::Other,
-                        "Unknown HTTP response transfer-encoding",
-                    ));
-                }
+                _ => Err(HttpClientError::UnsupportedTransferEncoding)?,
             }
         };
 
-        Ok(BodyChunks::new(body_chunks))
+        let body = BodyChunks::new(body_chunks);
+
+        Ok(Response {
+            code,
+            headers,
+            body,
+        })
     }
 
     pub fn request<'buf, M, P, QK, QV, HK, HV>(
@@ -161,7 +165,7 @@ impl<'s> Client<'s> {
         body: Option<&[u8]>,
         buffer: &'buf mut Vec<u8>,
         timeout: Duration,
-    ) -> std::io::Result<BodyChunks<'buf>>
+    ) -> Result<Response<'buf>>
     where
         M: AsRef<str>,
         P: AsRef<str>,
@@ -219,4 +223,10 @@ impl<'s> Client<'s> {
 
         Self::parse_response(&mut tls, buffer)
     }
+}
+
+pub struct Response<'s> {
+    pub code: u16,
+    pub headers: Vec<Header<'s>>,
+    pub body: BodyChunks<'s>,
 }
