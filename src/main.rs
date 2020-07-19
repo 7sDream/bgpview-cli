@@ -28,12 +28,12 @@ fn main() -> Result<()> {
             if prefixes.is_empty() {
                 println!("No ASN owns {}", ip);
             } else {
-                println!("{}", ip);
+                println!("     IP: {}", ip);
                 for prefix in prefixes {
                     let asn = &prefix.asn;
                     println!();
                     println!(
-                        "ASN{}: {} - {} - {}",
+                        "    ASN: {} - {} - {} - {}",
                         asn.asn, asn.name, asn.description, asn.country_code,
                     );
                     println!(" Prefix: {}", prefix.prefix);
