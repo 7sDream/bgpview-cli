@@ -58,13 +58,13 @@ fn main() -> Result<()> {
             let prefixes = &data.prefixes;
             if prefixes.is_empty() {
                 println!();
-                println!("No ASN owns {}", ip);
+                println!("No AS owns {}", ip);
             } else {
                 for prefix in prefixes {
                     println!();
                     let asn = &prefix.asn;
                     println!(
-                        "    ASN: {} - {} - {} - {}",
+                        "     AS: {} - {} - {} - {}",
                         asn.asn, asn.name, asn.description, asn.country_code,
                     );
                     println!(" Prefix: {}", prefix.prefix);

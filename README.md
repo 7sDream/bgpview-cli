@@ -1,23 +1,21 @@
 # BGPView CLI
 
-**Working in progress**, only `ip` sub command usable for now, and it only prints ASNs info.
+**Working in progress**, only `ip` sub command usable for now.
 
-Other sub commands can be added easily, but I do not use them very often, so they may not be added forever if no one asks.
+Other sub commands can be added easily, but I do not use them personally, so they may not be added forever if no one asks.
 
-You can visit https://bgpview.docs.apiary.io/ for the doc of bgpview.io API.
+You can refer to the [document of bgpview.io API][doc-of-bgpview.io] if you want to contribute or implement other commands.
 
 ## Install
 
 ```bash
-$ git clone <this-repo>
-$ cd bgpview
-$ cargo install --path .
+$ cargo install bgpview-cli
 ```
 
 ## Usage
 
 ```bash
-$ bgpview ip 1.1.1.1
+$ bgpview-cli ip 1.1.1.1
      IP: 1.1.1.1
 Country: AU
    City: Unknown
@@ -39,8 +37,18 @@ AllocAt: 2011-08-11 00:00:00
 Country: AU
 ```
 
-use `-h`/`--help` for help.
+Use `-h`/`--help` for help.
+
+You can set [alias][wikipedia:alias] if you use some command very often, bash for example:
+
+```bash
+alias bvip="bgpview-cli ip"
+bvip 1.1.1.1
+```
 
 ## License
 
 See `UNLICENSE`.
+
+[doc-of-bgpview.io]: https://bgpview.docs.apiary.io/
+[wikipedia:alias]: https://en.wikipedia.org/wiki/Alias_(command)

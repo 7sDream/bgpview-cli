@@ -1,11 +1,15 @@
 [package]
-name = "bgpview"
+name = "bgpview-cli"
 version = "0.1.0"
 authors = ["7sDream <i@7sdre.am>"]
-description = "CLI tools for bgpview.io"
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "CLI tools for bgpview.io"
+homepage = "https://github.com/7sDream/bgpview-cli"
+repository = "https://github.com/7sDream/bgpview-cli"
+readme = "README.md"
+license = "Unlicense"
+keywords = ["network", "bgp", "ip", "cli"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 serde = { version = "1",  features = ["derive"] }
