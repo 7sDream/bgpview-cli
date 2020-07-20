@@ -32,7 +32,7 @@ fn main() -> Result<()> {
 
             let loc = &data.max_mind;
 
-            println!("Country: {}", loc.country_code);
+            println!("Country: {}", unwrap_or_unknown(&loc.country_code));
             println!("   City: {}", unwrap_or_unknown(&loc.city));
 
             let iana = &data.iana_assignment;
@@ -43,12 +43,16 @@ fn main() -> Result<()> {
             println!("  Whois: {}", iana.whois_server);
 
             let rir = &data.rir_allocation;
-            println!();
-            println!("    RIR: {} - {}", rir.rir_name, rir.country_code);
-            println!(" Prefix: {}", rir.prefix);
-            println!("AllocSt: {}", rir.allocation_status);
-            if let Some(ref date) = rir.date_allocated {
-                println!("AllocAt: {}", date);
+            if let Some(ref rir_name) = rir.rir_name {
+                println!();
+                println!(
+                    "    RIR: {} - {}",
+                    rir_name,
+                    unwrap_or_unknown(&rir.country_code)
+                );
+                println!(" Prefix: {}", rir.prefix);
+                println!("AllocSt: {}", unwrap_or_unknown(&rir.allocation_status));
+                println!("AllocAt: {}", unwrap_or_unknown(&rir.date_allocated));
             }
 
             let prefixes = &data.prefixes;
